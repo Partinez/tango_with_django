@@ -71,7 +71,7 @@ def add_category(request):
 
 
 def about(request):
-	return HttpResponse("Rango says here is the about page.<br/> <a href='/rango/'> Index </a>")
+	return render(request, 'rango/about.html', {})
 
 def register(request):
 	registered = False
@@ -123,7 +123,7 @@ def user_login(request):
 
 @login_required
 def restricted(request):
-	return HttpResponse("Since you are logged in, you can see this text!")
+	return render(request, 'rango/restricted.html', {})
 
 @login_required
 def user_logout(request):
