@@ -1,5 +1,5 @@
 from rango.bing_search import run_query
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from rango.models import Category, Page
 from rango.forms import CategoryForm, PageForm, UserForm, UserProfileForm
@@ -52,16 +52,29 @@ def index(request):
 def category(request, category_name_slug):
 	#Create a context dict
 	context_dict = {}
+	context_dict['result_list'] = None
+	context_dict['query'] = None
+	if request.method == "POST":
+		query = request.POST['query'].strip()
+
+		if query:
+			# Run our Bing function to get the results list!
+			result_list = run_query(query)
+			context_dict['result_list']= result_list
+			context_dict['query'] = query
+			
+		
 	try:
 		category = Category.objects.get(slug=category_name_slug)
 		context_dict['category_name'] = category.name
-
-		pages = Page.objects.filter(category = category)
+		pages = Page.objects.filter(category=category).order_by('-views')
 		context_dict['pages'] = pages
 		context_dict['category'] = category
 		context_dict['category_name_slug'] = category_name_slug
 	except Category.DoesNotExist:
 		pass
+	if not context_dict['query']:
+		context_dict['query'] = category.name
 	return render(request, 'rango/category.html', context_dict)
 
 def add_page(request, category_name_slug):
@@ -103,6 +116,24 @@ def add_category(request):
 
 def about(request):
 	return render(request, 'rango/about.html', {})
+
+def register_profile(request):
+	registered = False
+	if request.method == "POST":
+		profile_form = UserProfileForm(data = request.POST)
+		if profile_form.is_valid():
+			profile = profile_form.save(commit = False)
+			profile.user = request.user
+			if 'picture' in request.FILES:
+				profile.picture = request.FILES['picture']
+			profile.save()
+			registered = True
+		else:
+			print profile_form.errors
+	else:
+		profile_form = UserProfileForm()
+	return render(request, 'rango/profile_registration.html', {'profile_form' : profile_form, 'registered' : registered})
+
 
 # def register(request):
 # 	if request.session.test_cookie_worked():
@@ -172,6 +203,7 @@ def search(request):
     result_list = []
 
     if request.method == 'POST':
+
         query = request.POST['query'].strip()
 
         if query:
@@ -180,4 +212,17 @@ def search(request):
 
     return render(request, 'rango/search.html', {'result_list': result_list})
 
+def track_url(request):
+	if request.method == 'GET':
+	    if 'page_id' in request.GET:
+	        page_id = request.GET['page_id']
 
+	try:
+		page = Page.objects.get(id = page_id)
+	except Page.DoesNotExist:
+		page = None
+	if page:
+		page.views += 1
+		page.save()
+		return redirect(page.url)
+	return HttpResponseRedirect('/rango/')	

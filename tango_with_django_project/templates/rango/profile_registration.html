@@ -1,0 +1,18 @@
+{% extends 'rango/base.html' %}
+
+{% load staticfiles %}
+
+
+{% block body_block %}
+		<div class="page-header"><h1>Complete your profile</h1></div>
+		{% if registered %}
+		You are already registered!
+		{% else %}
+		<form class="form-inline" id="user_form" method = "post" action="/rango/add_profile/" enctype="multipart/formdata">
+				{% csrf_token %}
+				{{profile_form.as_p}}
+				<input type ="submit" name= "submit" value="Register"/>
+
+		</form>
+		{% endif %}
+{% endblock %}
